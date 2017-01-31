@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>Title</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+		*{ box-sizing: border-box; margin: 0; padding:0; }
+		#container{ position: absolute;left: 0;top: 0;right: 0;bottom: 0;width: 100%; height: 100%; }
+		#options{ position: absolute;left: 0;top: 0;right: 0;bottom: 0;width: 100%; height: 100%; }
+		body{ font-family: sans-serif; font-size: 14px; }
+		#options{ padding: 20px;}
+		#cases p{ cursor: pointer; height: 1.3em; position: relative; }
+		#cases p span{ position: absolute; left: 0; top: 0;}
+		#cases p span:nth-child(2){ left: 600px;}
+		#cases p:hover{ opacity: .5;}
+		#selected{ position: absolute; left: 0; right: 0; bottom: 40px; text-align: center}
+		#result{ position: absolute; left: 0; right: 0; bottom: 20px; text-align: center}
+		</style>
+	</head>
+	<body>
+
+		<canvas id="container"></canvas>
+
+		<div id="options">
+			<h1>Cases</h1>
+			<div id="cases" >
+				<p><span>HTMLImage, UNPACK_FLIP_Y_WEBGL false</span><span>upside down</span></p>
+				<p><span>HTMLImage, UNPACK_FLIP_Y_WEBGL true</span><span>right</span></p>
+				<p><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL false, imageOrientation default</span><span>upside down</span></p>
+				<p><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL false, imageOrientation flipY</span><span>right</span></p>
+				<p><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL true, imageOrientation default</span><span>upside down</span></p>
+				<p><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL true, imageOrientation flipY</span><span>right</span></p>
+				<p><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL false, imageOrientation flipY and no dimensions</span><span>right</span></p>
+			</div>
+		</div>
+
+		<div id="selected" ></div>
+		<div id="result" ></div>
+
+<script id="vs" type="x-shader/x-vertex">
+
+attribute vec4 a_position;
+attribute vec2 a_texcoord;
+
+varying vec2 v_texcoord;
+
+void main() {
+	v_texcoord = a_texcoord;
+
+	gl_Position = a_position;
+}
+
+</script>
+<script id="fs" type="x-shader/x-fragment">
+
+precision mediump float;
+
+uniform sampler2D u_texture;
+
+varying vec2 v_texcoord;
+
+void main() {
+	gl_FragColor = texture2D(u_texture, v_texcoord);
+}
+
+</script>
+
+<script>
+
+'use strict';
+
+var canvas = document.getElementById( 'container' );
+var gl = canvas.getContext( 'webgl' );
+var texture;
+
+function createShader(gl, type, source) {
+	var shader = gl.createShader(type);
+	gl.shaderSource(shader, source);
+	gl.compileShader(shader);
+	var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+	if (success) {
+		return shader;
+	}
+
+	console.log(gl.getShaderInfoLog(shader));
+	gl.deleteShader(shader);
+}
+
+function createProgram(gl, vertexShader, fragmentShader) {
+	var program = gl.createProgram();
+	gl.attachShader(program, vertexShader);
+	gl.attachShader(program, fragmentShader);
+	gl.linkProgram(program);
+	var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+	if (success) {
+		return program;
+	}
+
+	console.log(gl.getProgramInfoLog(program));
+	gl.deleteProgram(program);
+}
+
+function init() {
+
+	var vertexShaderSource = document.getElementById( 'vs' ).text;
+	var fragmentShaderSource = document.getElementById( 'fs' ).text;
+
+	var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+	var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+	var program = createProgram(gl, vertexShader, fragmentShader);
+
+	var positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+	var texcoordAttribLocation = gl.getAttribLocation(program, 'a_texcoord');
+
+	var textureLocation = gl.getUniformLocation(program, 'u_texture');
+
+	var positionBuffer = gl.createBuffer();
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+	var positions = [
+
+		-0.5, -0.5,
+		-0.5, 0.5,
+		0.5, -0.5,
+
+		-0.5, 0.5,
+		0.5, -0.5,
+		0.5, 0.5
+
+	];
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+	var texCoordsBuffer = gl.createBuffer();
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, texCoordsBuffer);
+
+	var texCoords = [
+
+		0, 0,
+		0, 1,
+		1, 0,
+
+		0, 1,
+		1, 0,
+		1, 1
+
+	];
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
+
+	onWindowResize();
+
+	gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+	gl.clearColor(0, 0, 0, 0);
+	gl.clear(gl.COLOR_BUFFER_BIT);
+
+	gl.useProgram(program);
+
+	gl.enableVertexAttribArray(positionAttributeLocation);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+	var size = 2;
+	var type = gl.FLOAT;
+	var normalize = false;
+	var stride = 0;
+	var offset = 0;
+	gl.vertexAttribPointer( positionAttributeLocation, size, type, normalize, stride, offset)
+
+	gl.enableVertexAttribArray(texcoordAttribLocation);
+
+	gl.bindBuffer(gl.ARRAY_BUFFER, texCoordsBuffer);
+
+	var size = 2;
+	var type = gl.FLOAT;
+	var normalize = false;
+	var stride = 0;
+	var offset = 0;
+	gl.vertexAttribPointer( texcoordAttribLocation, size, type, normalize, stride, offset)
+
+	gl.uniform1i(textureLocation, 0);
+
+	function render(){
+
+		var primitiveType = gl.TRIANGLES;
+		var offset = 0;
+		var count = 6;
+		gl.drawArrays(primitiveType, offset, count);
+
+	}
+
+	var texture = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, texture);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+
+	var flip = false;
+	var useImageBitmap = false;
+	var useImageBitmapFlipY = false;
+
+	function load( flip, useImageBitmap, useImageBitmapFlipY, noDimensions ) {
+
+		var image = new Image();
+		image.src = 'image.png';
+		image.onload = function() {
+
+			gl.bindTexture(gl.TEXTURE_2D, texture);
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flip );
+
+			if( useImageBitmap ) {
+
+				var options = null;
+				if( useImageBitmapFlipY ) options = { imageOrientation: 'flipY' };
+
+				if( noDimensions ) {
+
+					var imageBitmap = createImageBitmap( image, options ).then( ( res ) => {
+						gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, res );
+						gl.generateMipmap(gl.TEXTURE_2D);
+						render();
+						document.getElementById( 'result' ).textContent = 'done';
+					}).catch( (e) => {
+						document.getElementById( 'result' ).textContent = e;
+					});
+
+				} else {
+
+					var imageBitmap = createImageBitmap( image, 0, 0, 512, 512, options ).then( ( res ) => {
+						gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, res );
+						gl.generateMipmap(gl.TEXTURE_2D);
+						render();
+						document.getElementById( 'result' ).textContent = 'done';
+					});
+
+				}
+
+			} else {
+
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
+				gl.generateMipmap(gl.TEXTURE_2D);
+				render();
+				document.getElementById( 'result' ).textContent = 'done';
+
+			}
+
+		}
+
+
+
+	}
+	window.loadImage = load;
+
+	load();
+
+	function onWindowResize() {
+
+		gl.canvas.width = window.innerWidth;
+		gl.canvas.height = window.innerHeight
+
+		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+		render();
+
+	}
+
+	window.addEventListener( 'resize', onWindowResize );
+
+	[].forEach.call( document.querySelectorAll( '#cases p' ), ( el, i ) => {
+		var actions = [
+			function() { load( false, false, false, false ) },
+			function() { load( true,  false, false, false ) },
+			function() { load( false, true,  false, false ) },
+			function() { load( false, true,  true,  false ) },
+			function() { load( true,  true,  false, false ) },
+			function() { load( true,  true,  true,  false ) },
+			function() { load( false,  true,  true,  true ) },
+		];
+		var fn = actions[ i ];
+		var str = el.textContent;
+		el.addEventListener( 'click', e => {
+			gl.clearColor(0, 0, 0, 0);
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			document.getElementById( 'selected' ).textContent = str;
+			document.getElementById( 'result' ).textContent = '';
+			fn();
+		});
+	});
+
+
+}
+
+window.addEventListener( 'load', init );
+
+</script>
+
+	</body>
+</html>
