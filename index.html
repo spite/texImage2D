@@ -10,10 +10,11 @@
 		#options{ position: absolute;left: 0;top: 0;right: 0;bottom: 0;width: 100%; height: 100%; }
 		body{ font-family: sans-serif; font-size: 14px; }
 		#options{ padding: 20px;}
-		#cases p{ cursor: pointer; height: 1.3em; position: relative; }
+		#cases p{ height: 1.3em; position: relative; }
+		#cases p.action{ cursor: pointer;  }
 		#cases p span{ position: absolute; left: 0; top: 0;}
 		#cases p span:nth-child(2){ left: 600px;}
-		#cases p:hover{ opacity: .5;}
+		#cases p.action:hover{ opacity: .5;}
 		#selected{ position: absolute; left: 0; right: 0; bottom: 40px; text-align: center}
 		#result{ position: absolute; left: 0; right: 0; bottom: 20px; text-align: center}
 		</style>
@@ -23,15 +24,15 @@
 		<canvas id="container"></canvas>
 
 		<div id="options">
-			<h1>Cases</h1>
 			<div id="cases" >
-				<p><span>HTMLImage, UNPACK_FLIP_Y_WEBGL false</span><span>upside down</span></p>
-				<p><span>HTMLImage, UNPACK_FLIP_Y_WEBGL true</span><span>right</span></p>
-				<p><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL false, imageOrientation default</span><span>upside down</span></p>
-				<p><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL false, imageOrientation flipY</span><span>right</span></p>
-				<p><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL true, imageOrientation default</span><span>upside down</span></p>
-				<p><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL true, imageOrientation flipY</span><span>right</span></p>
-				<p><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL false, imageOrientation flipY and no dimensions</span><span>right</span></p>
+				<p><span><b>Combination</b></span><span><b>Should look</b></span></p>
+				<p class="action"><span>HTMLImage, UNPACK_FLIP_Y_WEBGL false</span><span>upside down</span></p>
+				<p class="action"><span>HTMLImage, UNPACK_FLIP_Y_WEBGL true</span><span>right</span></p>
+				<p class="action"><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL false, imageOrientation default</span><span>upside down</span></p>
+				<p class="action"><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL false, imageOrientation flipY</span><span>right</span></p>
+				<p class="action"><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL true, imageOrientation default</span><span>upside down</span></p>
+				<p class="action"><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL true, imageOrientation flipY</span><span>right</span></p>
+				<p class="action"><span>ImageBitmap, UNPACK_FLIP_Y_WEBGL false, imageOrientation flipY and no dimensions</span><span>right</span></p>
 			</div>
 		</div>
 
@@ -267,7 +268,7 @@ function init() {
 
 	window.addEventListener( 'resize', onWindowResize );
 
-	[].forEach.call( document.querySelectorAll( '#cases p' ), ( el, i ) => {
+	[].forEach.call( document.querySelectorAll( '#cases p.action' ), ( el, i ) => {
 		var actions = [
 			function() { load( false, false, false, false ) },
 			function() { load( true,  false, false, false ) },
@@ -278,7 +279,7 @@ function init() {
 			function() { load( false,  true,  true,  true ) },
 		];
 		var fn = actions[ i ];
-		var str = el.textContent;
+		var str = el.querySelector( 'span' ).textContent;
 		el.addEventListener( 'click', e => {
 			gl.clearColor(0, 0, 0, 0);
 			gl.clear(gl.COLOR_BUFFER_BIT);
